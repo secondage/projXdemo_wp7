@@ -1,0 +1,19 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<XnaContent>
+  <!-- TODO: replace this Asset with your own XML asset data. -->
+  <Asset Type="EntityDefinition.EntityDefinition">
+    <name>邪神</name>
+    <type>Monster</type>
+    <tmpid>3</tmpid>
+    <pics>
+      <Item>boss1_1</Item>
+      <Item>boss1_2</Item>
+    </pics>
+    <hp>1000</hp>
+    <maxhp>1000</maxhp>
+    <atk>70</atk>
+    <def>40</def>
+    <speed>240</speed>
+    <size>1.0</size>
+  </Asset>
+</XnaContent>
