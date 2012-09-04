@@ -39,6 +39,7 @@ namespace demo
         static public Type[] SkipRenderTypeList = {/*typeof(Cloud), typeof(Background), typeof(CharacterPic),
                                                     typeof(CharacterTitle), typeof(HoverStone) */};
         static private float _viewportScrollRange = 300;
+        static public float ViewportScrollResetTime = 1.0f;
 
         static public int FixedEnemyNum
         {

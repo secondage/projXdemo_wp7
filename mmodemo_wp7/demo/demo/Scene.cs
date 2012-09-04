@@ -439,7 +439,7 @@ namespace demo
         {
             Animation<Vector2>.CreateAnimation2Value(new Vector2(viewport.X, viewport.Y),
                                                      new Vector2(x, y),
-                                                     0.5,
+                                                     GameConst.ViewportScrollResetTime,
                                                      Vector2.Lerp,
                                                      SetViewportPos);
 
@@ -685,6 +685,10 @@ namespace demo
 						{
 							GameConst.ViewportScrollRange = float.Parse(configelement.Element("ViewportScrollRange").Value);
 						}
+                        if (configelement.Element("ViewportScrollResetTime") != null)
+                        {
+                            GameConst.ViewportScrollResetTime = float.Parse(configelement.Element("ViewportScrollResetTime").Value);
+                        }
                     }
                     foreach (XElement element in defelement.Elements("NpcDef"))
                     {
