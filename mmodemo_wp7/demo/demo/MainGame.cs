@@ -12,14 +12,13 @@ using System.IO;
 using demo.uicontrols;
 using System.Reflection;
 using System.Runtime.InteropServices;
-#if BEETLE_NETWORK
 using Beetle;
-#endif
 using System.Threading;
 using System.Xml;
 using System.Diagnostics;
 using ProjectMercury;
 using ProjectMercury.Renderers;
+using demo.animation;
 using Microsoft.Xna.Framework.Input.Touch;
 using System.Xml.Linq;
 
@@ -54,11 +53,7 @@ namespace demo
         private Player player;
         private SpriteFont mainfont;
         //private static TcpChannel clientchannel;
-#if BEETLE_NETWORK
         private static Beetle.ProtoBufAdapter.ProtoBufChannel clientchannel = new Beetle.ProtoBufAdapter.ProtoBufChannel();
-#else
-        
-#endif
         private long ClientID;
         private SpriteBatchRenderer spritebatchrenderer;
         private bool ContentLoadCompleted = false;
@@ -67,12 +62,16 @@ namespace demo
         private ParticleEffect peSpawn;
         private ParticleEffect peClick;
 
+        private Texture2D loadingTexture;
+
         public static bool IsEditorMode { get; set; }
         Texture2D[] cloudTextureArray = new Texture2D[15];
 
         public MainGame()
         {
             graphics = new GraphicsDeviceManager(this);
+            GameConst.ScreenWidth = 800;
+            GameConst.ScreenHeight = 480;
             GameConst.Graphics = graphics;
             GameConst.Content = Content;
             GameConst.GameWindow = this.Window;
@@ -271,14 +270,11 @@ namespace demo
             CurrentScene.ActualSize = new Vector4(0, 0, 20000, 2048 * GameConst.BackgroundScale);
 
             //init net client
-#if BEETLE_NETWORK
             try
             {
                 string ipaddress = "192.168.1.6";
                 int port = 9610;
-
-                System.IO.Stream stream = TitleContainer.OpenStream("servers.xml");
-                if (stream != null)
+                using(System.IO.Stream stream = TitleContainer.OpenStream("servers.xml"))
                 {
                     XDocument doc = XDocument.Load(stream);
 
@@ -308,27 +304,11 @@ namespace demo
             {
                 
             }
-#endif
             base.Initialize();
         }
-        /// <summary>
-        /// LoadContent will be called once per game and is the place to load
-        /// all of your content.
-        /// </summary>
-        protected override void LoadContent()
+
+        protected void LoadContentThread()
         {
-            // Create a new SpriteBatch, which can be used to draw textures.
-            spriteBatch = new SpriteBatch(GraphicsDevice);
-
-            //spritebatchrenderer = new SpriteBatchRenderer();
-            spritebatchrenderer = new SpriteBatchRenderer
-            {
-                GraphicsDeviceService = this.graphics,
-                Transformation = Matrix.CreateTranslation(0, 0, 1f)
-            };
-
-            GraphicsDevice.ScissorRectangle = new Rectangle(0, 0, GameConst.ScreenWidth, GameConst.ScreenHeight);
-
             try
             {
                 //token.ThrowIfCancellationRequested();
@@ -388,7 +368,6 @@ namespace demo
                     peClick.Emitters[i].Initialise();
                 }
 
-
                 Thread.Sleep(10);
                 ContentLoadCompleted = true;
             }
@@ -396,14 +375,35 @@ namespace demo
             {
                 throw new ContentLoadException("载入资源发生错误，程序关闭: " + e.Message);
             }
+        }
+        /// <summary>
+        /// LoadContent will be called once per game and is the place to load
+        /// all of your content.
+        /// </summary>
+        protected override void LoadContent()
+        {
+            // Create a new SpriteBatch, which can be used to draw textures.
+            spriteBatch = new SpriteBatch(GraphicsDevice);
+
+            //spritebatchrenderer = new SpriteBatchRenderer();
+            spritebatchrenderer = new SpriteBatchRenderer
+            {
+                GraphicsDeviceService = this.graphics,
+                Transformation = Matrix.CreateTranslation(0, 0, 1f)
+            };
+
+            GraphicsDevice.ScissorRectangle = new Rectangle(0, 0, GameConst.ScreenWidth, GameConst.ScreenHeight);
+
+            loadingTexture = Content.Load<Texture2D>("ui/loading");
+
+            Thread thread_loadc = new Thread(new ThreadStart(LoadContentThread));
+            thread_loadc.Start();
                 
-#if BEETLE_NETWORK                   
             if (clientchannel != null && !clientchannel.Disconnected)
             {
                 MainGame.LoginToServer("test1", "69-8D-51-A1-9D-8A-12-1C-E5-81-49-9D-7B-70-16-68");
             }
             else
-#endif
             {
                 ProjectXServer.Messages.PlayerLoginSelfMsg msg = new ProjectXServer.Messages.PlayerLoginSelfMsg();
                 msg.ClientID = 0;
@@ -414,10 +414,12 @@ namespace demo
                 msg.DEF = 30;
                 msg.HP = 1000;
                 msg.MaxHP = 1000;
-                CreateLocalPlayer(msg);
+
+                Thread thread_createlp = new Thread(new ParameterizedThreadStart(CreateLocalPlayer));
+                thread_createlp.Start(msg);
+                //CreateLocalPlayer(msg);
             }
         }
-#if BEETLE_NETWORK  
         /// <summary>
         /// 删除角色实例
         /// </summary>
@@ -441,14 +443,14 @@ namespace demo
             }
 
         }
-#endif
         /// <summary>
         /// 创建本地Player角色
         /// </summary>
         /// <param name="pn">角色创建属性msg，描述角色基本属性</param>
-        private void CreateLocalPlayer(ProjectXServer.Messages.PlayerLoginSelfMsg pn)
+        private void CreateLocalPlayer(/*ProjectXServer.Messages.PlayerLoginSelfMsg pn*/object o)
         {
-            
+            while (!ContentLoadCompleted);
+            ProjectXServer.Messages.PlayerLoginSelfMsg pn = o as ProjectXServer.Messages.PlayerLoginSelfMsg;
             player = new Player(pn.Name, CurrentScene);
             CharacterDefinition.PicDef pd = Content.Load<CharacterDefinition.PicDef>(@"chardef/char3");
             CharacterPic cpic = new CharacterPic(pd, 15);
@@ -486,6 +488,7 @@ namespace demo
         /// <param name="pn">远端角色属性描述msg</param>
         private void CreatePlayer(ProjectXServer.Messages.PlayerLoginMsg pn)
         {
+            while (!ContentLoadCompleted) ;
             NetPlayer playernet = new NetPlayer(pn.Name, CurrentScene);
             CharacterDefinition.PicDef pd = Content.Load<CharacterDefinition.PicDef>(@"chardef/char3");
             CharacterPic cpic = new CharacterPic(pd, 15);
@@ -527,9 +530,10 @@ namespace demo
             // Allows the game to exit
             if (GamePad.GetState(PlayerIndex.One).Buttons.Back == Microsoft.Xna.Framework.Input.ButtonState.Pressed)
                 this.Exit();
-            //if (!ContentLoadCompleted)
-            //    return;
+            if (!ContentLoadCompleted)
+                return;
             UpdateInput();
+            InterpolatioAnimationMgr.Update(gameTime);
             CurrentScene.Update(gameTime);
             spritebatchrenderer.Transformation = Matrix.CreateTranslation(-CurrentScene.Viewport.X, -CurrentScene.Viewport.Y, 0);
             if (peSpawn != null)
@@ -540,7 +544,7 @@ namespace demo
             {
                 peTrails.Update((float)gameTime.ElapsedGameTime.TotalSeconds);
             }
-            if (peTrails != null)
+            if (peClick != null)
             {
                 peClick.Update((float)gameTime.ElapsedGameTime.TotalSeconds);
             }
@@ -557,11 +561,19 @@ namespace demo
         /// <param _name="gameTime">Provides a snapshot of timing values.</param>
         /// 
         Matrix idmatrix = new Matrix();
+        float _loadingangle = 0;
         protected override void Draw(GameTime gameTime)
         {
             GraphicsDevice.Clear(Color.Black);
-            //if (!ContentLoadCompleted)
-            //    return;
+            if (!ContentLoadCompleted)
+            {
+                spriteBatch.Begin();
+                spriteBatch.Draw(loadingTexture, new Vector2(GameConst.ScreenWidth - loadingTexture.Width, GameConst.ScreenHeight - loadingTexture.Height),
+                                  null, Color.White, _loadingangle, new Vector2(loadingTexture.Width / 2, loadingTexture.Height / 2), 1.0f, SpriteEffects.None, 1.0f);
+                spriteBatch.End();
+                _loadingangle += 0.1f;
+                return;
+            }
 
             GameConst.RenderCountPerFrame = 0;
             CurrentScene.RenderPrepositive();
@@ -633,17 +645,13 @@ namespace demo
                             if (ClientID != 0)
                             {
                                 player.StartMoveSyncTimer();
-#if BEETLE_NETWORK  
                                 SendRequestMovementMsg(player);
-#endif
                             }
                         }
                         else
                         {
-#if BEETLE_NETWORK 
                             if (ClientID != 0)
                                 SendTargetChangedMsg(player);
-#endif
                         }
                         if (!player.Interacting)
                             player.InteractiveTarget = null;
@@ -655,17 +663,13 @@ namespace demo
                             if (ClientID != 0)
                             {
                                 player.StartMoveSyncTimer();
-#if BEETLE_NETWORK 
                                 SendRequestMovementMsg(player);
-#endif
                             }
                         }
                         else
                         {
-#if BEETLE_NETWORK 
                             if (ClientID != 0)
                                 SendTargetChangedMsg(player);
-#endif
                         }
                     }
                 }

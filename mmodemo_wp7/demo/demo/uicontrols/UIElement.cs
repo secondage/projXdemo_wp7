@@ -35,7 +35,6 @@ namespace demo.uicontrols
         protected Dictionary<string, UIElement> controls = new Dictionary<string, UIElement>();
 
         public event EventHandler OnClose;
-        
 
         public Rectangle CurrentRect
         {
@@ -428,7 +427,11 @@ namespace demo.uicontrols
                 UIElementState us = UIElementState.Normal;
                 try
                 {
+#if WINDOWS_PHONE				
                     us = (UIElementState)Enum.Parse(typeof(UIElementState), rect.name, false);
+#else
+					us = (UIElementState)Enum.Parse(typeof(UIElementState), rect.name);
+#endif					
                 }
                 catch (ArgumentException e)
                 {

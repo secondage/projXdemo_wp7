@@ -38,6 +38,7 @@ namespace demo
         static public int BossRushMode1Offset = 60;
         static public Type[] SkipRenderTypeList = {/*typeof(Cloud), typeof(Background), typeof(CharacterPic),
                                                     typeof(CharacterTitle), typeof(HoverStone) */};
+        static private float _viewportScrollRange = 300;
 
         static public int FixedEnemyNum
         {
@@ -119,6 +120,20 @@ namespace demo
                 screenHeight = value;
             }
         }
+
+        static public float ViewportScrollRange
+        {
+            get
+            {
+                return _viewportScrollRange;
+            }
+            set
+            {
+                _viewportScrollRange = value;
+            }
+        }
+
+
 
         static public Vector2 NameTitleOffset
         {

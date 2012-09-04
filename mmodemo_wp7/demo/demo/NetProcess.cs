@@ -3,14 +3,11 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
 using System.Text;
-#if BEETLE_NETWORK
 using Beetle;
-#endif
 using System.Security.Cryptography;
 
 namespace demo
 {
-#if BEETLE_NETWORK    
     public partial class MainGame : Microsoft.Xna.Framework.Game
     {
         private void ReceiveMessage(object sender, EventChannelReceiveArgs e)
@@ -159,5 +156,4 @@ namespace demo
             Beetle.ProtoBufAdapter.MessageAdapter.Send(clientchannel, msg);
         }
     }
-#endif     
 }

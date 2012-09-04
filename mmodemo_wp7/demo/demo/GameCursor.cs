@@ -13,13 +13,13 @@ using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using Microsoft.Xna.Framework.Media;
 using System.Runtime.InteropServices;
+using System.Windows.Forms;
 using System.Reflection;
 
 namespace demo
 {
     public class GameCursor
     {
-        /*
         [DllImport("user32.dll")]
         public static extern IntPtr LoadCursorFromFile(string fileName);
 
@@ -28,7 +28,6 @@ namespace demo
 
         [DllImport("user32.dll")]
         public static extern uint DestroyCursor(IntPtr cursorHandle);
-         * */
         public enum CursorType
         {
             Normal,
@@ -39,12 +38,12 @@ namespace demo
             Lastword,
         };
         private static string[] cursorfns = new string[(int)CursorType.Lastword];
-        //private static Cursor[] cursors = new Cursor[(int)CursorType.Lastword];
-        //private static Cursor curcursor = null;
+        private static Cursor[] cursors = new Cursor[(int)CursorType.Lastword];
+        private static Cursor curcursor = null;
         private static IntPtr chandle;
         static public void Initialize(IntPtr handle)
         {
-            /*cursorfns[(int)CursorType.Attack] = "cursors/attack.cur";
+            cursorfns[(int)CursorType.Attack] = "cursors/attack.cur";
             cursorfns[(int)CursorType.Normal] = "cursors/normal.cur";
             cursorfns[(int)CursorType.Magic] = "cursors/magic.cur";
             cursorfns[(int)CursorType.Talk] = "cursors/talk.cur";
@@ -57,11 +56,11 @@ namespace demo
                 myCursor.GetType().InvokeMember("handle", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.SetField, null, myCursor,
                        new object[] { colorCursorHandle });
                 cursors[i] = myCursor;
-            }*/
+            }
         }
         static public void SetCursor(CursorType type)
         {
-            /*Control ctrl = System.Windows.Forms.Control.FromHandle(GameConst.GameWindow.Handle);
+            Control ctrl = System.Windows.Forms.Control.FromHandle(GameConst.GameWindow.Handle);
             if (ctrl != null && curcursor != cursors[(int)type])
             {
                 //Cursor myCursor = new Cursor(chandle);
@@ -70,7 +69,7 @@ namespace demo
                   //     new object[] { colorCursorHandle });
                 ctrl.Cursor = cursors[(int)type];
                 curcursor = cursors[(int)type];
-            }*/
+            }
         }
     }
 }

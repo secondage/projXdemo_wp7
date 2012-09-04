@@ -27,6 +27,8 @@
     <TileImage Condition="$(XnaOutputType)=='Game'">Background.png</TileImage>
     <TileTitle Condition="$(XnaOutputType)=='Game'">demo</TileTitle>
     <SupportedCultures />
+    <GameStartupType>demo.MainGame</GameStartupType>
+    <WPTombstoneEnabled>True</WPTombstoneEnabled>
     <PublishUrl>C:\Users\St.Aster\Desktop\publish\</PublishUrl>
     <Install>true</Install>
     <InstallFrom>Disk</InstallFrom>
@@ -45,7 +47,6 @@
     <UseApplicationTrust>false</UseApplicationTrust>
     <PublishWizardCompleted>true</PublishWizardCompleted>
     <BootstrapperEnabled>true</BootstrapperEnabled>
-    <GameStartupType>demo.MainGame</GameStartupType>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|Windows Phone' ">
     <OutputPath>bin\Windows Phone\Release</OutputPath>
@@ -93,11 +94,10 @@
   <PropertyGroup>
     <StartupObject />
   </PropertyGroup>
-  <PropertyGroup>
-    <NoWin32Manifest>true</NoWin32Manifest>
-  </PropertyGroup>
+  <PropertyGroup />
   <ItemGroup />
   <ItemGroup>
+    <Compile Include="Animation.cs" />
     <Compile Include="Background.cs" />
     <Compile Include="Character.cs" />
     <Compile Include="CharacterAnimation.cs" />
@@ -106,7 +106,6 @@
     <Compile Include="Cloud.cs" />
     <Compile Include="effects\NumberAnimation.cs" />
     <Compile Include="GameConst.cs" />
-    <Compile Include="GameCursor.cs" />
     <Compile Include="Log.cs" />
     <Compile Include="MiniMap.cs" />
     <Compile Include="Monster.cs" />
@@ -165,6 +164,7 @@
     <Content Include="servers.xml">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+    <Content Include="SplashScreenImage.jpg" />
     <None Include="Background.png">
       <XnaPlatformSpecific>true</XnaPlatformSpecific>
     </None>

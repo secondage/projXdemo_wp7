@@ -16,7 +16,11 @@ using System.Diagnostics;
 using demo.uicontrols;
 using System.Threading;
 using System.IO;
+#if WINDOWS
+using System.Windows.Forms;
+#endif
 using System.Xml.Linq;
+using demo.animation;
 
 namespace demo
 {
@@ -181,8 +185,6 @@ namespace demo
                     continue;
                 rc.Render(sb);
             }
-
-
        
             if (state == SceneState.Battle && _roundtime >= 0)
             {
@@ -353,7 +355,6 @@ namespace demo
             return null;
         }
 
-#if BEETLE_NETWORK
         public void UpdatePlayerPosition(ProjectXServer.Messages.PlayerPositionUpdate msg)
         {
             Player _p = null;
@@ -383,7 +384,7 @@ namespace demo
             }
 
         }
-#endif
+
         public NetPlayer FindNetPlayer(long clientid)
         {
             if (netplayers.Count == 0)
@@ -427,6 +428,24 @@ namespace demo
             viewport.X = x;
             viewport.Y = y;
         }
+
+        private void SetViewportPos(ref Vector2 v)
+        {
+            viewport.X = v.X;
+            viewport.Y = v.Y;
+        }
+       
+        public void SetViewportPosDefer(float x, float y)
+        {
+            Animation<Vector2>.CreateAnimation2Value(new Vector2(viewport.X, viewport.Y),
+                                                     new Vector2(x, y),
+                                                     0.5,
+                                                     Vector2.Lerp,
+                                                     SetViewportPos);
+
+        }
+
+       
 
         public void SetViewportSize(float width, float height)
         {
@@ -593,7 +612,11 @@ namespace demo
                         mtmp = "evilspirit";
                     else if (es == 3)
                         mtmp = "boss";
+#if WINDOWS_PHONE						
                     Monster monster = Character.CreateCharacter(mtmp, this, "monster") as Monster;//new Monster(es == 1 ? "魔军" : "妖军" + (i + 1).ToString(), this);
+#else
+					Monster monster = Character.CreateCharacter(mtmp, this) as Monster;//new Monster(es == 1 ? "魔军" : "妖军" + (i + 1).ToString(), this);
+#endif					
                     if (monster != null)
                     {
                         monster.Layer = 15;
@@ -625,7 +648,8 @@ namespace demo
                 countdowneffect.PlaySpeed = 1.0f;
 
                 
-                System.IO.Stream stream = TitleContainer.OpenStream(name + ".xml");
+                using(System.IO.Stream stream = TitleContainer.OpenStream(name + ".xml"))
+				{
                 XDocument doc = XDocument.Load(stream);
                 XElement defelement = doc.Element("SceneDef");
                 if (defelement != null)
@@ -657,6 +681,10 @@ namespace demo
                         {
                             GameConst.BossRushMode1Offset = int.Parse(configelement.Element("BossRushMode1Offset").Value);
                         }
+						if (configelement.Element("ViewportScrollRange") != null)
+						{
+							GameConst.ViewportScrollRange = float.Parse(configelement.Element("ViewportScrollRange").Value);
+						}
                     }
                     foreach (XElement element in defelement.Elements("NpcDef"))
                     {
@@ -798,9 +826,8 @@ namespace demo
                         }
                     }
                 }
-                stream.Close();
-                stream.Dispose();
-       
+               
+       }
                 //create task track 
                 UIDialog dialog = UIMgr.AddUIControl("UIDialog", "dlg_questtrck", /*755, 174,*/(int)UILayout.Right, (int)UILayout.Center, 247, 345, -1, 99, this) as UIDialog;
                 if (dialog != null)
@@ -938,7 +965,11 @@ namespace demo
                     {
                         if (localplayer.OperateTarget != localplayer)
                         {
+#if WINDOWS_PHONE						
                             Spell fireball = Character.CreateCharacter("fireball", this, "fireball") as Spell;
+#else
+							Spell fireball = Character.CreateCharacter("fireball", this) as Spell;
+#endif														
                             if (fireball != null)
                             {
                                 fireball.Layer = 15;
@@ -1492,8 +1523,218 @@ namespace demo
             return 0;
         }
 
-              
+#if WINDOWS
+        private void SaveHoverStones()
+        {
+            //System.IO.Stream stream = TitleContainer.OpenStream(name + ".xml");
+            try
+            {
+                FileStream streamread = new FileStream(name + ".xml", FileMode.Open);
+                if (streamread != null)
+                {
+                    XmlDocument doc = new XmlDocument();
+                    doc.Load(streamread);
+                    streamread.Close();
+                    streamread.Dispose();
+                    FileStream streamwrite = new FileStream(name + ".xml", FileMode.Create);
+                    if (streamwrite != null)
+                    {
+                        XmlNodeList constdef = doc.GetElementsByTagName("HoverStoneDef", "");
+                        if (constdef.Count > 0)
+                        {
+                            constdef[0].RemoveAll();
+                            for (int i = 0; i < renderchunks.Count; ++i)
+                            {
 
+                                if (renderchunks[i] is HoverStone)
+                                {
+                                    HoverStone rc = renderchunks[i] as HoverStone;
+                                    XmlElement xe = doc.CreateElement("HoverStone");
+                                    XmlElement etexturename = doc.CreateElement("Texture");
+                                    etexturename.InnerText = "stone1";
+                                    xe.AppendChild(etexturename);
+
+                                    XmlElement epos = doc.CreateElement("Position");
+                                    XmlElement eposx = doc.CreateElement("X");
+                                    eposx.InnerText = rc.Position.X.ToString();
+                                    XmlElement eposy = doc.CreateElement("Y");
+                                    eposy.InnerText = rc.Position.Y.ToString();
+                                    epos.AppendChild(eposx);
+                                    epos.AppendChild(eposy);
+                                    xe.AppendChild(epos);
+
+                                    XmlElement elayer = doc.CreateElement("Layer");
+                                    elayer.InnerText = rc.Layer.ToString();
+                                    xe.AppendChild(elayer);
+
+                                    XmlElement esize = doc.CreateElement("Size");
+                                    XmlElement esizex = doc.CreateElement("X");
+                                    esizex.InnerText = rc.Size.X.ToString();
+                                    XmlElement esizey = doc.CreateElement("Y");
+                                    esizey.InnerText = rc.Size.Y.ToString();
+                                    esize.AppendChild(esizex);
+                                    esize.AppendChild(esizey);
+                                    xe.AppendChild(esize);
+
+                                    XmlElement erange = doc.CreateElement("Range");
+                                    erange.InnerText = rc.AMP.ToString();
+                                    xe.AppendChild(erange);
+
+                                    XmlElement ectime = doc.CreateElement("CycleTime");
+                                    ectime.InnerText = rc.TimeOfCycle.ToString();
+                                    xe.AppendChild(ectime);
+
+                                    constdef[0].AppendChild(xe);
+                                }
+                            }
+                        }
+                        doc.Save(streamwrite);
+                        streamwrite.Close();
+                        streamwrite.Dispose();
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                MessageBox.Show("SaveHoverStones Failed : " + e.Message);
+            }
+
+            // XmlNodeList hsdef = doc.GetElementsByTagName("HoverStoneDef", "");
+
+        }
+
+        public void DoEditorMenu(int x, int y, bool showit)
+        {
+            if (!showit)
+            {
+                UIDialog dialoge = UIMgr.GetUIControlByName("editorcontextmenu") as UIDialog;
+                if (dialoge != null)
+                {
+                    dialoge.State = RenderChunk.RenderChunkState.Delete;
+                }
+                return;
+            }
+
+            UIDialog dialog = UIMgr.GetUIControlByName("editorcontextmenu") as UIDialog;
+            if (dialog == null)
+            {
+                dialog = UIMgr.AddUIControl("UIDialog", "editorcontextmenu", x + 20, y, 70, 100, -1, 99, this) as UIDialog;
+            }
+            else
+            {
+                dialog.Position = new Vector2(x + 20, y);
+                dialog.RemoveUIControl("delbtn");
+                dialog.RemoveUIControl("addbtn");
+                if (_hostChunk != null)
+                {
+                    UITextButton btn = UIMgr.CreateUIControl("UITextButton") as UITextButton;
+                    if (btn != null)
+                    {
+                        btn.Text = "删除";
+                        btn.FontColor = Color.DeepSkyBlue;
+                        dialog.AddUIControl(btn, "delbtn", 2, 2, 66, 20, -1, this);
+                    }
+                }
+                else
+                {
+                    UITextButton btn = UIMgr.CreateUIControl("UITextButton") as UITextButton;
+                    if (btn != null)
+                    {
+                        btn.Text = "新建";
+                        btn.FontColor = Color.DeepSkyBlue;
+                        dialog.AddUIControl(btn, "addbtn", 2, 2, 66, 20, -1, this);
+                    }
+                }
+                return;
+            }
+            if (dialog != null)
+            {
+                if (_hostChunk != null)
+                {
+                    UITextButton btn = dialog.GetUIControlByName("delbtn") as UITextButton;
+                    if (btn == null)
+                    {
+                        btn = UIMgr.CreateUIControl("UITextButton") as UITextButton;
+                    }
+                    if (btn != null)
+                    {
+                        btn.Text = "删除";
+                        btn.FontColor = Color.DeepSkyBlue;
+                        dialog.AddUIControl(btn, "delbtn", 2, 2, 66, 20, -1, this);
+                    }
+                }
+                else
+                {
+                    UITextButton btn = dialog.GetUIControlByName("addbtn") as UITextButton;
+                    if (btn == null)
+                    {
+                        btn = UIMgr.CreateUIControl("UITextButton") as UITextButton;
+                    }
+                    if (btn != null)
+                    {
+                        btn.Text = "新建";
+                        btn.FontColor = Color.DeepSkyBlue;
+                        dialog.AddUIControl(btn, "addbtn", 2, 2, 66, 20, -1, this);
+                    }
+                }
+            }
+        }
+
+        protected void delbtn_OnClick(object sender, MouseEventArgs e)
+        {
+            UITextButton btn = sender as UITextButton;
+            btn.Parent.State = RenderChunk.RenderChunkState.FadeOutToDel;
+            if (_hostChunk != null)
+            {
+                _hostChunk.State = RenderChunk.RenderChunkState.Delete;
+            }
+        }
+
+        protected void addbtn_OnClick(object sender, MouseEventArgs e)
+        {
+            UITextButton btn = sender as UITextButton;
+            btn.Parent.State = RenderChunk.RenderChunkState.FadeOutToDel;
+            HoverStone hs = new HoverStone();
+            hs.TextureFileName = "stone1";
+            hs.Texture = GameConst.Content.Load<Texture2D>(@"stone/stone1");
+            hs.Position = new Vector2(viewport.X + e.X, viewport.Y + e.Y);
+            hs.Layer = Convert.ToInt32(random.Next(18,22));
+            hs.Size = new Vector2(1, 1);
+            hs.AMP = 10;
+            hs.TimeOfCycle = 2;
+            AddRenderChunk(hs);
+        }
+
+        public void EditorOperate(MainGame.EditorOp op, int x, int y)
+        {
+            switch (op)
+            {
+                case MainGame.EditorOp.Move:
+                    if (_hostChunk != null)
+                    {
+                        _hostChunk.Position = new Vector2(viewport.X + x, viewport.Y + y);
+                    }
+                    break;
+                case MainGame.EditorOp.Scale:
+                    {
+                        if (_hostChunk != null)
+                        {
+                            Vector2 s = _hostChunk.Size;
+                            float f = Math.Max(x, y);
+                            //Log.WriteLine(x.ToString());
+                            s += new Vector2(f * 0.01f, f * 0.01f);
+                            s.X = MathHelper.Clamp(s.X, 0.5f, 10.0f);
+                            s.Y = MathHelper.Clamp(s.Y, 0.5f, 10.0f);
+                            _hostChunk.Size = s;
+                        }
+                    }
+                    break;
+                case MainGame.EditorOp.Save:
+                    SaveHoverStones();
+                    break;
+            }
+        }
+#endif
         public void ConfirmOperateTarget()
         {
             if (_hostCharacter != null && _roundtime > 0)
@@ -1602,6 +1843,7 @@ namespace demo
                     _hostCharacter.Picture.HighLight = false;
                 host.Picture.HighLight = true;
                 _hostCharacter = host;
+#if WINDOWS
                 if (host is Player)
                 {
                     if (localplayer.Operate == Character.OperateType.Magic)
@@ -1624,10 +1866,13 @@ namespace demo
                         GameCursor.SetCursor(GameCursor.CursorType.Magic);
                     }
                 }
+#endif
             }
             else
             {
+#if WINDOWS
                 GameCursor.SetCursor(GameCursor.CursorType.Normal);
+#endif
                 if (_hostCharacter != null)
                 {
                     _hostCharacter.Picture.HighLight = false;
@@ -1682,7 +1927,6 @@ namespace demo
         }
 
 
-#if BEETLE_NETWORK 
         internal void UpdatePlayerMovement(ProjectXServer.Messages.PlayerMoveRequest msg)
         {
             Player _p = FindNetPlayer(msg.ClientID);
@@ -1704,7 +1948,7 @@ namespace demo
                 _p.Target = new Vector2(msg.Target[0], msg.Target[1]);
             }
         }
-#endif
+
     }
 
 }
